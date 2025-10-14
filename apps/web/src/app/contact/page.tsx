@@ -21,8 +21,9 @@ export default function ContactPage() {
       if (!res.ok || !data.ok) throw new Error(data.error || "Unknown error");
       setStatus("✅ Sent! We will get back to you soon.");
       setForm({ name: "", email: "", phone: "", message: "" });
-    } catch (err: any) {
-      setStatus(`❌ ${err.message || "Failed to send"}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to send";
+      setStatus(`❌ ${msg}`);
     }
   };
 
