@@ -1,15 +1,13 @@
-// apps/functions/contact-submit/index.ts
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 const ddb = new DynamoDBClient({});
+const ses = new SESv2Client({});
 const TABLE = process.env.LEADS_TABLE!;
+const SES_FROM = process.env.SES_FROM!;
+const SES_TO = process.env.SES_TO!;
 
-type Body = {
-  name?: string;
-  email?: string;
-  phone?: string;
-  message?: string;
-};
+type Body = { name?: string; email?: string; phone?: string; message?: string };
 
 export const handler = async (event: any) => {
   try {
@@ -35,8 +33,35 @@ export const handler = async (event: any) => {
       }
     }));
 
+    // Send notification email via SES
+    await ses.send(new SendEmailCommand({
+      FromEmailAddress: SES_FROM,
+      Destination: { ToAddresses: [SES_TO] },
+      Content: {
+        Simple: {
+          Subject: { Data: `New lead from ${body.name}` },
+          Body: {
+            Text: {
+              Data:
+`A new lead was submitted:
+
+Name: ${body.name}
+Email: ${body.email}
+Phone: ${body.phone ?? ''}
+
+Message:
+${body.message}
+
+Lead ID: ${leadId}
+Time: ${now}`
+            }
+          }
+        }
+      }
+    }));
+
     return ok({ id: leadId });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error:', err);
     return bad(500, 'Server error');
   }

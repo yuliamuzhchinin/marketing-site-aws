@@ -7,6 +7,8 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
 import { HttpApi, CorsHttpMethod, HttpMethod } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+
 
 export class BackendStack extends Stack {
   public readonly apiUrl: string;
@@ -29,29 +31,37 @@ export class BackendStack extends Stack {
       memorySize: 256,
       timeout: Duration.seconds(10),
       environment: {
-        LEADS_TABLE: leads.tableName
+        LEADS_TABLE: leads.tableName,
+        SES_FROM: 'no-reply@yourdomain.com',  
+        SES_TO: 'munata18@gmail.com',       
       },
-      bundling: {
-        minify: true
-      }
+      bundling: { minify: true },
     });
+
+    // Give Lambda permission to send emails using SES
+    submitFn.addToRolePolicy(new PolicyStatement({
+      actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+      resources: ['*'], //restrict later to  SES identity ARN
+    }));
+
     leads.grantWriteData(submitFn);
+
 
     // HTTP API
     const api = new HttpApi(this, 'HttpApi', {
-  corsPreflight: {
-    allowHeaders: ['content-type'],
-    allowMethods: [CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
-    allowOrigins: ['*'], // tighten later
-  },
-});
+      corsPreflight: {
+        allowHeaders: ['content-type'],
+        allowMethods: [CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
+        allowOrigins: ['*'], // tighten later
+      },
+    });
 
 
     api.addRoutes({
-  path: '/contact',
-  methods: [HttpMethod.POST],
-  integration: new HttpLambdaIntegration('ContactIntegration', submitFn),
-});
+      path: '/contact',
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration('ContactIntegration', submitFn),
+    });
 
 
     this.apiUrl = api.apiEndpoint;

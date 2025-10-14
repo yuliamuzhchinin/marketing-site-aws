@@ -1,16 +1,23 @@
-import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+#!/usr/bin/env node
+import 'source-map-support/register';
+import { App } from 'aws-cdk-lib';
+import { BackendStack } from '../lib/backend-stack';
+import { FrontendStack } from '../lib/frontend-stack';
 
-export class InfraStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+const app = new App();
 
-    // The code that defines your stack goes here
+// Backend (API, Lambda, DynamoDB)
+new BackendStack(app, 'MarketingBackendStack', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION ?? 'us-west-2',
+  },
+});
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'InfraQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
-  }
-}
+// Frontend (S3 + CloudFront)
+new FrontendStack(app, 'MarketingFrontendStack', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION ?? 'us-west-2',
+  },
+});

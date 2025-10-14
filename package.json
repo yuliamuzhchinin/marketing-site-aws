@@ -1,15 +1,19 @@
 {
-"name": "marketing-site-aws",
-"private": true,
-"packageManager": "pnpm@10.18.2",
-"scripts": {
-  "dev:web": "pnpm --filter web dev",
-  "build:web": "pnpm --filter web build",
-  "start:web": "pnpm --filter web start",
-  "bootstrap": "pnpm install"
+  "name": "marketing-site-aws",
+  "private": true,
+  "packageManager": "pnpm@10.18.2",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "start:web": "pnpm --filter web start",
+    "bootstrap": "pnpm install"
   },
-"devDependencies":{
-"prettier": "^3.0.0",
-"typescript": "^5.6.0"
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.908.0",
+    "@aws-sdk/client-sesv2": "^3.908.0"
   }
 }
