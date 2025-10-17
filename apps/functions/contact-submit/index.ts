@@ -2,10 +2,13 @@ import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 const ddb = new DynamoDBClient({});
-const ses = new SESv2Client({});
+const SES_REGION = process.env.SES_REGION || process.env.AWS_REGION;
+const ses = new SESv2Client({ region: SES_REGION });
 const TABLE = process.env.LEADS_TABLE!;
 const SES_FROM = process.env.SES_FROM!;
 const SES_TO = process.env.SES_TO!;
+
+
 
 type Body = { name?: string; email?: string; phone?: string; message?: string };
 

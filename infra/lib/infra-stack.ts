@@ -10,7 +10,7 @@ const app = new App();
 new BackendStack(app, 'MarketingBackendStack', {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION ?? 'us-west-2',
+    region: process.env.CDK_DEFAULT_REGION ?? 'us-west-1',
   },
 });
 
@@ -18,6 +18,6 @@ new BackendStack(app, 'MarketingBackendStack', {
 new FrontendStack(app, 'MarketingFrontendStack', {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION ?? 'us-west-2',
+    region: process.env.CDK_DEFAULT_REGION ?? 'us-west-1',
   },
 });

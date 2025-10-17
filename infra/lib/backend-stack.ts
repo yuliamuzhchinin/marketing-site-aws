@@ -26,14 +26,12 @@ export class BackendStack extends Stack {
     // Lambda handler (bundles TS with esbuild)
     const submitFn = new NodejsFunction(this, 'ContactSubmitFn', {
       entry: path.join(__dirname, '../../apps/functions/contact-submit/index.ts'),
-      runtime: Runtime.NODEJS_20_X,
-      architecture: Architecture.ARM_64,
-      memorySize: 256,
-      timeout: Duration.seconds(10),
+      handler: 'handler',
       environment: {
         LEADS_TABLE: leads.tableName,
-        SES_FROM: 'no-reply@yourdomain.com',  
-        SES_TO: 'munata18@gmail.com',       
+        SES_FROM: 'muzhchinin18@gmail.com',
+        SES_TO: 'mmuzhchi@gmail.com',
+        SES_REGION: this.region, // add this line
       },
       bundling: { minify: true },
     });
@@ -48,11 +46,11 @@ export class BackendStack extends Stack {
 
 
     // HTTP API
-    const api = new HttpApi(this, 'HttpApi', {
+    const api = new HttpApi(this, "HttpApi", {
       corsPreflight: {
-        allowHeaders: ['content-type'],
+        allowHeaders: ["content-type"],
         allowMethods: [CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
-        allowOrigins: ['*'], // tighten later
+        allowOrigins: ["https://www.trendnestmedia.com"],
       },
     });
 
