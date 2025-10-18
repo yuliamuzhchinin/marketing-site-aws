@@ -28,19 +28,14 @@ export default function ContactPage() {
   };
 
   return (
-    <main style={{ padding: 24, maxWidth: 760, margin: "0 auto" }}>
-      <h1>Contact — Marketing Services</h1>
-      <p>Fill out this form and we’ll reach out to local businesses.</p>
+    <main className="container py-16">
+  <h1 className="text-4xl">Contact</h1>
+  <p className="mt-3 text-ink/70 max-w-prose">Tell us a bit about your business…</p>
 
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
-        <input name="name" placeholder="Your name" value={form.name} onChange={handleChange} required />
-        <input name="email" type="email" placeholder="you@example.com" value={form.email} onChange={handleChange} required />
-        <input name="phone" placeholder="Phone (optional)" value={form.phone} onChange={handleChange} />
-        <textarea name="message" placeholder="How we can help…" value={form.message} onChange={handleChange} rows={6} required />
-        <button type="submit">Send</button>
-      </form>
-
-      {status && <p style={{ marginTop: 12 }}>{status}</p>}
-    </main>
+  <form /* your existing submit handler */ className="card p-6 mt-8 space-y-4">
+    {/* inputs ... */}
+    <button className="btn btn-primary">Send</button>
+  </form>
+</main>
   );
 }
