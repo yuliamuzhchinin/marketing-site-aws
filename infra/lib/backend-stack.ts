@@ -24,17 +24,23 @@ export class BackendStack extends Stack {
     });
 
     // Lambda handler (bundles TS with esbuild)
-    const submitFn = new NodejsFunction(this, 'ContactSubmitFn', {
-      entry: path.join(__dirname, '../../apps/functions/contact-submit/index.ts'),
-      handler: 'handler',
+    const submitFn = new NodejsFunction(this, "ContactSubmitFn", {
+      entry: path.join(__dirname, "../../apps/functions/contact-submit/index.ts"),
+      handler: "handler",
       environment: {
         LEADS_TABLE: leads.tableName,
-        SES_FROM: 'muzhchinin18@gmail.com',
-        SES_TO: 'mmuzhchi@gmail.com',
-        SES_REGION: this.region, // add this line
+        SES_FROM: "no-reply@trendnestmedia.com",
+        SES_TO: "muzhchinin18@gmail.com",
+        SES_REGION: this.region, // us-west-1
       },
       bundling: { minify: true },
     });
+
+    leads.grantWriteData(submitFn);
+    submitFn.addToRolePolicy(new PolicyStatement({
+      actions: ["ses:SendEmail", "ses:SendRawEmail"],
+      resources: ["*"],
+    }));
 
     // Give Lambda permission to send emails using SES
     submitFn.addToRolePolicy(new PolicyStatement({
@@ -42,7 +48,7 @@ export class BackendStack extends Stack {
       resources: ['*'], //restrict later to  SES identity ARN
     }));
 
-    leads.grantWriteData(submitFn);
+
 
 
     // HTTP API
