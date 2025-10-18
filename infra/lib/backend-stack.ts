@@ -1,13 +1,16 @@
 // infra/lib/backend-stack.ts
-import { Stack, StackProps, RemovalPolicy, Duration, CfnOutput } from 'aws-cdk-lib';
+import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
-import { Runtime, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
 import { HttpApi, CorsHttpMethod, HttpMethod } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as snsSubs from "aws-cdk-lib/aws-sns-subscriptions";
+import * as cwActions from "aws-cdk-lib/aws-cloudwatch-actions";
+import { CfnStage } from "aws-cdk-lib/aws-apigatewayv2";
 
 
 export class BackendStack extends Stack {
@@ -20,7 +23,7 @@ export class BackendStack extends Stack {
     const leads = new Table(this, 'LeadsTable', {
       partitionKey: { name: 'leadId', type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
-      removalPolicy: RemovalPolicy.DESTROY // dev convenience; switch to RETAIN for prod
+      pointInTimeRecovery: true
     });
 
     // Lambda handler (bundles TS with esbuild)
@@ -44,12 +47,9 @@ export class BackendStack extends Stack {
 
     // Give Lambda permission to send emails using SES
     submitFn.addToRolePolicy(new PolicyStatement({
-      actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-      resources: ['*'], //restrict later to  SES identity ARN
+      actions: ["ses:SendEmail", "ses:SendRawEmail"],
+      resources: [`arn:aws:ses:${this.region}:${this.account}:identity/trendnestmedia.com`],
     }));
-
-
-
 
     // HTTP API
     const api = new HttpApi(this, "HttpApi", {
@@ -59,7 +59,35 @@ export class BackendStack extends Stack {
         allowOrigins: ["https://www.trendnestmedia.com"],
       },
     });
+    // Set default stage throttling (HTTP API)
+    const cfnStage = api.defaultStage!.node.defaultChild as CfnStage;
+    cfnStage.defaultRouteSettings = {
+      throttlingBurstLimit: 50,  // peak bucket
+      throttlingRateLimit: 10,   // steady req/sec
+    };
 
+
+
+    // 1) Alert topic
+    const alertsTopic = new sns.Topic(this, "AlertsTopic", {
+      displayName: "TrendNest Backend Alerts",
+    });
+
+    // 2) Send alerts to email
+    alertsTopic.addSubscription(new snsSubs.EmailSubscription("muzhchinin18@gmail.com"));
+
+
+    // 3) Alarm: Lambda errors
+    submitFn.metricErrors().createAlarm(this, "ContactFnErrors", {
+      threshold: 1,
+      evaluationPeriods: 1,
+    }).addAlarmAction(new cwActions.SnsAction(alertsTopic));
+
+    // 4) Alarm: API Gateway 5xx responses
+    api.metricServerError().createAlarm(this, "Api5xx", {
+      threshold: 1,
+      evaluationPeriods: 1,
+    }).addAlarmAction(new cwActions.SnsAction(alertsTopic));
 
     api.addRoutes({
       path: '/contact',

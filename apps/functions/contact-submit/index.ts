@@ -5,8 +5,8 @@ const ddb = new DynamoDBClient({});
 const ses = new SESv2Client({ region: process.env.SES_REGION || process.env.AWS_REGION });
 
 const TABLE = process.env.LEADS_TABLE!;
-const SES_FROM = process.env.SES_FROM!;   // e.g. no-reply@trendnestmedia.com
-const SES_TO = process.env.SES_TO!;       // your mom's real inbox
+const SES_FROM = process.env.SES_FROM!;
+const SES_TO = process.env.SES_TO!;
 
 type Body = { name?: string; email?: string; phone?: string; message?: string };
 
@@ -18,16 +18,21 @@ export const handler = async (event: any) => {
 
     const leadId = "lead_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
     const now = new Date().toISOString();
+    const isEmail = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+    if (body.name!.length > 120) return bad(400, "Name too long");
+    if (!isEmail(body.email!)) return bad(400, "Invalid email");
+    if (body.message!.length > 5000) return bad(400, "Message too long");
+
 
     await ddb.send(new PutItemCommand({
       TableName: TABLE,
       Item: {
-        leadId:   { S: leadId },
-        name:     { S: body.name },
-        email:    { S: body.email },
-        phone:    { S: body.phone ?? "" },
-        message:  { S: body.message },
-        createdAt:{ S: now }
+        leadId: { S: leadId },
+        name: { S: body.name },
+        email: { S: body.email },
+        phone: { S: body.phone ?? "" },
+        message: { S: body.message },
+        createdAt: { S: now }
       }
     }));
 
@@ -38,8 +43,9 @@ export const handler = async (event: any) => {
         Simple: {
           Subject: { Data: `New lead from ${body.name}` },
           Body: {
-            Text: { Data:
-`A new lead was submitted:
+            Text: {
+              Data:
+                `A new lead was submitted:
 
 Name: ${body.name}
 Email: ${body.email}
@@ -61,7 +67,7 @@ Time: ${now}`
   } catch (err) {
     console.error("Error:", err);
     const msg = err instanceof Error ? err.message : String(err);
-    return bad(500, `Server error: ${msg}`); // keep this during testing
+    return bad(500, `Server error: ${msg}`);
   }
 };
 
@@ -70,7 +76,7 @@ function bad(status: number, error: string) { return { statusCode: status, heade
 function cors() {
   return {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "https://www.trendnestmedia.com", // tighten if you want
+    "Access-Control-Allow-Origin": "https://www.trendnestmedia.com",
     "Access-Control-Allow-Methods": "OPTIONS,POST"
   };
 }
