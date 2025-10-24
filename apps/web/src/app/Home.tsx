@@ -5,11 +5,6 @@ import Footer from "@/components/Footer";
 import { useBooking } from "@/components/BookingContext";
 
 
-function openBooking() {
-  // fire the global event Nav listens to
-  window.dispatchEvent(new Event("open-booking"));
-}
-
 export default function Home() {
   const { open } = useBooking();
   return (

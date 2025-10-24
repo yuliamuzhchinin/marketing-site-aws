@@ -23,7 +23,7 @@ export const handler = async (event: any) => {
     if (!isEmail(body.email!)) return bad(400, "Invalid email");
     if (body.message!.length > 5000) return bad(400, "Message too long");
 
-
+    const msg = body.message ?? "Booking intent via Book Call modal";
     await ddb.send(new PutItemCommand({
       TableName: TABLE,
       Item: {
@@ -31,7 +31,7 @@ export const handler = async (event: any) => {
         name: { S: body.name },
         email: { S: body.email },
         phone: { S: body.phone ?? "" },
-        message: { S: body.message },
+        message: { S: msg},
         createdAt: { S: now }
       }
     }));

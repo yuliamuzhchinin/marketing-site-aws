@@ -18,7 +18,7 @@ export default function Nav() {
   return (
     <nav className="border-b border-white/10">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="font-serif text-xl tracking-wide">SOLSTICE</Link>
+        <Link href="/" className="font-serif text-xl tracking-wide">TRENDNEST MEDIA</Link>
 
         <ul className="hidden md:flex items-center gap-6 text-sm">
           {links.map((l) => (
