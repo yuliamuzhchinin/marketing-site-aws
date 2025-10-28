@@ -1,26 +1,17 @@
+"use client"
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Plans & Pricing — TrendNest Media",
-  description:
-    "Affordable marketing plans for small and local businesses. Choose from Starter, Growth, or Pro for social media, Google Ads, SEO, and web maintenance.",
-  keywords: [
-    "marketing plans",
-    "pricing",
-    "small business marketing packages",
-    "Google Ads pricing",
-    "SEO packages",
-    "web maintenance plans"
-  ],
-};
+import { useBooking } from "@/components/BookingContext";
+
+
 
 function Check() {
   return <span aria-hidden className="text-[#CBB79A]">✓</span>;
 }
 
 export default function PlansPage() {
+   const { open } = useBooking();
   return (
     <>
       <Nav />
@@ -113,7 +104,9 @@ export default function PlansPage() {
           <p className="mt-3 text-white/70 max-w-2xl mx-auto">
             Book a free discovery call. We’ll review your goals and suggest the best plan.
           </p>
-          <a href="/contact" className="btn btn-primary mt-6">Book a Call</a>
+          <button onClick={open} className="btn btn-primary mt-6">
+            Book Your Free Discovery Call
+          </button>
         </section>
       </main>
 
