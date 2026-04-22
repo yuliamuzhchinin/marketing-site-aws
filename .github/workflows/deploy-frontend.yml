@@ -1,0 +1,64 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/web/**"
+      - "infra/lib/frontend-stack.ts"
+      - ".github/workflows/deploy-frontend.yml"
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Setup Node
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 3. Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.2
+
+      # 4. Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 5. Build Next.js static export
+      - name: Build Next.js
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NODE_ENV: production
+        run: pnpm build
+
+      # 6. Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-1
+
+      # 7. Install CDK
+      - name: Install CDK
+        run: npm install -g aws-cdk
+
+      # 8. Deploy frontend stack
+      - name: Deploy Frontend Stack
+        working-directory: infra
+        run: cdk deploy MarketingFrontendStack --require-approval never
