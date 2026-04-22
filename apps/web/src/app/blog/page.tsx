@@ -8,8 +8,6 @@ export const metadata: Metadata = {
   description: "Tips on SEO, websites, and automations for local businesses.",
 };
 
-// Revalidate every 60 seconds — new posts appear without a full redeploy
-export const revalidate = 60;
 
 type Post = {
   id: string;
@@ -25,9 +23,7 @@ async function fetchPosts(): Promise<Post[]> {
   const api = process.env.NEXT_PUBLIC_API_URL;
   if (!api) return [];
 
-  const res = await fetch(`${api}/blog`, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetch(`${api}/blog`);
 
   if (!res.ok) return [];
 

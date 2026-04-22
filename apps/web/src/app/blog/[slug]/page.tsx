@@ -4,8 +4,8 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 
-export const revalidate = 60;
-export const dynamicParams = true; // allow new slugs without a full rebuild
+
+export const dynamicParams = false; // allow new slugs without a full rebuild
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL;
 
