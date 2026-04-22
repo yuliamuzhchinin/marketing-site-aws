@@ -47,29 +47,47 @@ export class FrontendStack extends Stack {
     const spaRoutingFn = new CfFunction(this, "SpaRoutingFn", {
   code: FunctionCode.fromInline(`
 function handler(event) {
-  var r = event.request;
-  // If URL has no file extension and does not end with '/', rewrite to /index.html
-  if (!r.uri.includes('.') && !r.uri.endsWith('/')) {
-    r.uri = r.uri + '/index.html';
+  var request = event.request;
+  var uri = request.uri;
+
+  // Root → /index.html
+  if (uri === "" || uri === "/") {
+    request.uri = "/index.html";
+    return request;
   }
-  return r;
+
+  // If no file extension, treat as directory and map to /path/index.html
+  if (uri.indexOf(".") === -1) {
+    if (uri.charAt(uri.length - 1) !== "/") {
+      uri = uri + "/";
+    }
+    request.uri = uri + "index.html";
+  }
+
+  return request;
 }
 `),
 });
 
+
     const distro = new Distribution(this, "SiteDistribution", {
-      defaultBehavior: {
-        origin: new S3Origin(siteBucket, { originAccessIdentity: oai }),
-        allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-        viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: CachePolicy.CACHING_OPTIMIZED,
-        responseHeadersPolicy: ResponseHeadersPolicy.SECURITY_HEADERS,
-        functionAssociations: [{ function: spaRoutingFn, eventType: FunctionEventType.VIEWER_REQUEST }],
+  defaultBehavior: {
+    origin: new S3Origin(siteBucket, { originAccessIdentity: oai }),
+    allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+    viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+    cachePolicy: CachePolicy.CACHING_OPTIMIZED,
+    responseHeadersPolicy: ResponseHeadersPolicy.SECURITY_HEADERS,
+    functionAssociations: [
+      {
+        function: spaRoutingFn,
+        eventType: FunctionEventType.VIEWER_REQUEST,
       },
-      certificate: cert,
-      domainNames: [`${subdomain}.${domainName}`],
-      defaultRootObject: "index.html",
-    });
+    ],
+  },
+  certificate: cert,
+  domainNames: [`${subdomain}.${domainName}`],
+  defaultRootObject: "index.html",
+});
 
     new ARecord(this, "AliasRecordWWW", {
       zone,

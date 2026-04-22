@@ -4,6 +4,7 @@ import { App } from 'aws-cdk-lib';
 import { BackendStack } from '../lib/backend-stack';
 import { FrontendStack } from '../lib/frontend-stack';
 
+
 const app = new App();
 
 // Backend (API, Lambda, DynamoDB)

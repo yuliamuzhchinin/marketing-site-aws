@@ -2,5 +2,6 @@
   "hosted-zone:account=858979012161:domainName=trendnestmedia.com:region=us-west-1": {
     "Id": "/hostedzone/Z04311442236SU6NQ9BW6",
     "Name": "trendnestmedia.com."
-  }
+  },
+  "ssm:account=858979012161:parameterName=/trendnest/blog-api-key:region=us-west-1": "AQICAHiSOOwhiKoSLtaNuFSqS+EXi4zMMZ60AQtO2aKmP6HbwgEygU7lSlOLtzx6RSSqZQQoAAAAdDByBgkqhkiG9w0BBwagZTBjAgEAMF4GCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMm8JR/wqdQKOehlW3AgEQgDEbLc8Z0yMqIyNSkwdSar2AF/NGg9l09KgbugBHarViYBT3GjS5Y7dJql2tYfadBEOe"
 }

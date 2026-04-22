@@ -9,11 +9,15 @@
     "bootstrap": "pnpm install"
   },
   "devDependencies": {
+    "@types/node": "^20.19.21",
     "prettier": "^3.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.0"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.908.0",
-    "@aws-sdk/client-sesv2": "^3.908.0"
+    "@aws-sdk/client-sesv2": "^3.908.0",
+    "@aws-sdk/lib-dynamodb": "^3.929.0"
   }
 }
