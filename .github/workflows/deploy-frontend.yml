@@ -54,11 +54,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-1
 
-      # 7. Install CDK
+      # 7. Install CDK globally
       - name: Install CDK
         run: npm install -g aws-cdk
 
-      # 8. Deploy frontend stack
+      # 8. Install infra dependencies
+      - name: Install infra dependencies
+        working-directory: infra
+        run: npm install
+
+      # 9. Deploy frontend stack
       - name: Deploy Frontend Stack
         working-directory: infra
         run: cdk deploy MarketingFrontendStack --require-approval never
