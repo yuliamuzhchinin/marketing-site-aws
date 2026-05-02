@@ -9,6 +9,10 @@ on:
       - "infra/lib/frontend-stack.ts"
       - ".github/workflows/deploy-frontend.yml"
 
+  # Triggered remotely by Google Apps Script after a new post is submitted
+  repository_dispatch:
+    types: [new-blog-post]
+
   # Allow manual trigger from GitHub Actions tab
   workflow_dispatch:
 
