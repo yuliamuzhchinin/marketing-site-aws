@@ -3,7 +3,6 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   ScanCommand,
-  GetCommand,
   PutCommand,
   QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
@@ -20,7 +19,7 @@ const BLOG_TABLE   = process.env.BLOG_TABLE!;
 const LEADS_TABLE  = process.env.LEADS_TABLE!;
 const SES_FROM     = process.env.SES_FROM!;
 const SES_TO       = process.env.SES_TO!;
-const BLOG_API_KEY = process.env.BLOG_API_KEY!; // secret key to protect POST /blog
+const BLOG_API_KEY = process.env.BLOG_API_KEY!;
 const ALLOW_ORIGIN =
   process.env.ALLOW_ORIGIN ||
   "https://www.trendnestmedia.com,http://localhost:3000";
@@ -55,13 +54,10 @@ function slugify(title: string): string {
     .trim();
 }
 
-function excerptFromHtml(html: string, maxLength = 160): string {
-  const text = html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength).replace(/\s+\S*$/, "") + "…";
+function excerptFromText(text: string, maxLength = 160): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= maxLength) return clean;
+  return clean.slice(0, maxLength).replace(/\s+\S*$/, "") + "…";
 }
 
 function pickAllowOrigin() {
@@ -72,7 +68,7 @@ function pickAllowOrigin() {
 
 function corsHeaders() {
   return {
-    "Access-Control-Allow-Origin": pickAllowOrigin(),
+    "Access-Control-Allow-Origin":  pickAllowOrigin(),
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type,x-api-key",
   };
@@ -120,12 +116,10 @@ export const handler = async (event: any) => {
 
     const items = (scan.Items ?? []) as Post[];
 
-    // Sort newest first
     items.sort((a, b) =>
       (b.publishedAt || "").localeCompare(a.publishedAt || "")
     );
 
-    // Only return the fields needed for the listing page (no html)
     const summary = items.map(({ id, slug, title, subtitle, excerpt, imageUrl, publishedAt }) => ({
       id, slug, title, subtitle, excerpt, imageUrl, publishedAt,
     }));
@@ -135,7 +129,6 @@ export const handler = async (event: any) => {
 
   // ── GET /blog/{slug} — fetch single post by slug ────────────
   if (method === "GET" && slug && /\/blog\/[^/]+$/.test(path)) {
-    // Query the slug-index GSI
     const result = await ddbDoc.send(
       new QueryCommand({
         TableName: BLOG_TABLE,
@@ -144,7 +137,7 @@ export const handler = async (event: any) => {
         FilterExpression: "#pub = :true",
         ExpressionAttributeNames: {
           "#slug": "slug",
-          "#pub": "published",
+          "#pub":  "published",
         },
         ExpressionAttributeValues: {
           ":slug": slug,
@@ -162,7 +155,6 @@ export const handler = async (event: any) => {
 
   // ── POST /blog — create a new post (protected) ──────────────
   if (method === "POST" && path.endsWith("/blog") && !slug) {
-    // Check API key
     const apiKey =
       event?.headers?.["x-api-key"] || event?.headers?.["X-Api-Key"];
 
@@ -170,46 +162,46 @@ export const handler = async (event: any) => {
       return bad(401, "Unauthorized");
     }
 
-    const body = JSON.parse(event.body || "{}");
+    // Use "payload" to avoid conflict with the "body" post field
+    const payload = JSON.parse(event.body || "{}");
 
-    if (!body?.title || !body?.html) {
-      return bad(400, "title and html are required");
+    if (!payload?.title || !payload?.body) {
+      return bad(400, "title and body are required");
     }
 
-    // Auto-generate slug from title
-    let slug = slugify(String(body.title).trim());
+    let postSlug = slugify(String(payload.title).trim());
 
-    // Check for slug collision and append a suffix if needed
+    // Handle slug collisions
     const existing = await ddbDoc.send(
       new QueryCommand({
         TableName: BLOG_TABLE,
         IndexName: "slug-index",
         KeyConditionExpression: "#slug = :slug",
         ExpressionAttributeNames: { "#slug": "slug" },
-        ExpressionAttributeValues: { ":slug": slug },
+        ExpressionAttributeValues: { ":slug": postSlug },
         Limit: 1,
       })
     );
 
     if ((existing.Items?.length ?? 0) > 0) {
-      slug = `${slug}-${Date.now()}`;
+      postSlug = `${postSlug}-${Date.now()}`;
     }
 
     const excerpt =
-      body.excerpt?.trim() ||
-      body.subtitle?.trim() ||
-      excerptFromHtml(String(body.html));
+      payload.excerpt?.trim() ||
+      payload.subtitle?.trim() ||
+      excerptFromText(String(payload.body));
 
     const item: Post = {
       id:          randomUUID(),
-      slug,
-      title:       String(body.title).trim(),
-      subtitle:    body.subtitle?.trim(),
+      slug:        postSlug,
+      title:       String(payload.title).trim(),
+      subtitle:    payload.subtitle?.trim(),
       excerpt,
-      html:        String(body.html),
-      imageUrl:    body.imageUrl,
+      body:        String(payload.body),
+      imageUrl:    payload.imageUrl,
       publishedAt: new Date().toISOString(),
-      published:   body.published !== false, // default true
+      published:   payload.published !== false,
     };
 
     await ddbDoc.send(
@@ -223,14 +215,14 @@ export const handler = async (event: any) => {
   if (method === "POST" && path.endsWith("/contact")) {
     if (!event.body) return bad(400, "Missing body");
 
-    const body: LeadBody = JSON.parse(event.body);
+    const contactPayload: LeadBody = JSON.parse(event.body);
 
-    if (!body.name || !body.email || !body.message) {
+    if (!contactPayload.name || !contactPayload.email || !contactPayload.message) {
       return bad(400, "name, email, and message are required");
     }
-    if (body.name.length > 120)       return bad(400, "Name too long");
-    if (!isEmail(body.email))         return bad(400, "Invalid email");
-    if (body.message.length > 5000)   return bad(400, "Message too long");
+    if (contactPayload.name.length > 120)    return bad(400, "Name too long");
+    if (!isEmail(contactPayload.email))       return bad(400, "Invalid email");
+    if (contactPayload.message.length > 5000) return bad(400, "Message too long");
 
     const leadId =
       "lead_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -241,10 +233,10 @@ export const handler = async (event: any) => {
         TableName: LEADS_TABLE,
         Item: {
           leadId,
-          name:      body.name,
-          email:     body.email,
-          phone:     body.phone ?? "",
-          message:   body.message,
+          name:      contactPayload.name,
+          email:     contactPayload.email,
+          phone:     contactPayload.phone ?? "",
+          message:   contactPayload.message,
           createdAt: now,
         },
       })
@@ -256,10 +248,10 @@ export const handler = async (event: any) => {
         Destination: { ToAddresses: [SES_TO] },
         Content: {
           Simple: {
-            Subject: { Data: `New lead from ${body.name}` },
+            Subject: { Data: `New lead from ${contactPayload.name}` },
             Body: {
               Text: {
-                Data: `A new lead was submitted:\n\nName: ${body.name}\nEmail: ${body.email}\nPhone: ${body.phone ?? ""}\n\nMessage:\n${body.message}\n\nLead ID: ${leadId}\nTime: ${now}`,
+                Data: `A new lead was submitted:\n\nName: ${contactPayload.name}\nEmail: ${contactPayload.email}\nPhone: ${contactPayload.phone ?? ""}\n\nMessage:\n${contactPayload.message}\n\nLead ID: ${leadId}\nTime: ${now}`,
               },
             },
           },

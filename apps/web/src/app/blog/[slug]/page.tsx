@@ -104,7 +104,9 @@ export async function generateStaticParams() {
   const res = await fetch(`${API}/blog`, { next: { revalidate: 60 } });
   if (!res.ok) return [];
   const data = await res.json();
-  return (data.items ?? []).map((post: Post) => ({ slug: post.slug }));
+  return (data.items ?? [])
+    .filter((post: Post) => post.slug && typeof post.slug === "string")  // ← add this
+    .map((post: Post) => ({ slug: post.slug }));
 }
 
 // ─── Metadata ────────────────────────────────────────────────────────────────
